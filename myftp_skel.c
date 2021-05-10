@@ -25,7 +25,7 @@ bool recv_msg(int sd, int code, char *text) {
     int recv_s, recv_code;
 
     // receive the answer
-
+    recv_s = recv (sd, buffer, BUFSIZE, 0);
 
     // error checking
     if (recv_s < 0) warn("error receiving data");
@@ -56,7 +56,10 @@ void send_msg(int sd, char *operation, char *param) {
         sprintf(buffer, "%s\r\n", operation);
 
     // send command and check for errors
-
+    if (send(sd, buffer, strlen(buffer), 0) == -1) {
+        perror("send error");
+        exit(1);
+    }
 }
 
 /**
@@ -84,25 +87,34 @@ void authenticate(int sd) {
     input = read_input();
 
     // send the command to the server
+    send_msg(sd, "USER", input);
     
     // relese memory
     free(input);
 
     // wait to receive password requirement and check for errors
-
+    code = 331;
+    if (!recv_msg(sd, code, desc)) {
+        perror("password requirement error");
+        exit(1);
+    }
 
     // ask for password
     printf("passwd: ");
     input = read_input();
 
     // send the command to the server
-
+    send_msg(sd, "PASS", input);
 
     // release memory
     free(input);
 
     // wait for answer and process it and check for errors
-
+    code = 230;
+    if(!recv_msg(sd, code, desc)) {
+        perror("wrong password");
+        exit(1);
+    }
 }
 
 /**
@@ -116,9 +128,13 @@ void get(int sd, char *file_name) {
     FILE *file;
 
     // send the RETR command to the server
-
+    send_msg(sd, "RETR", file_name);
+    
     // check for the response
-
+    if (recv_msg(sd, 550, NULL)) {
+        return;
+    }
+    
     // parsing the file size from the answer received
     // "File %s size %ld bytes"
     sscanf(buffer, "File %*s size %d bytes", &f_size);
@@ -134,7 +150,7 @@ void get(int sd, char *file_name) {
     fclose(file);
 
     // receive the OK from the server
-
+    recv_msg(sd, 226, NULL);
 }
 
 /**
@@ -143,9 +159,9 @@ void get(int sd, char *file_name) {
  **/
 void quit(int sd) {
     // send command QUIT to the client
-
+    send_msg(sd, "QUIT", NULL);
     // receive the answer from the server
-
+    recv_msg(sd, 221, NULL);
 }
 
 /**
@@ -188,16 +204,34 @@ int main (int argc, char *argv[]) {
     struct sockaddr_in addr;
 
     // arguments checking
-
+    if (argc != 3) {
+        printf("%s <SERVER_IP> <SERVER_PORT>", argv[0]);
+        exit(1);
+    }
     // create socket and check for errors
-    
+    if ((sd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+        perror("can't create socket");
+        exit(1);
+    }
     // set socket data    
-
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(atoi(argv[2]));
+    addr.sin_addr.s_addr = inet_addr(argv[1]);
+    
     // connect and check for errors
-
+    if (connect(sd, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
+        perror("connection error");
+        exit(1);
+    }
     // if receive hello proceed with authenticate and operate if not warning
-
+    if (!recv_msg(sd, 220, NULL)) {
+        warn("error receiving data");
+    } else {
+        authenticate(sd);
+        operate(sd);
+    }
     // close socket
-
+    close(sd);
+    
     return 0;
 }
