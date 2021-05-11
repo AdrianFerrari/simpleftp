@@ -120,7 +120,7 @@ void authenticate(int sd) {
  * sd: socket descriptor
  * file_name: file name to get from the server
  **/
-void get(int sd, char *file_name) {
+/*void get(int sd, char *file_name) {
     char desc[BUFSIZE], buffer[BUFSIZE];
     int f_size, recv_s, r_size = BUFSIZE;
     FILE *file;
@@ -149,7 +149,7 @@ void get(int sd, char *file_name) {
 
     // receive the OK from the server
     recv_msg(sd, 226, NULL);
-}
+}*/
 
 /**
  * function: operation quit
@@ -178,7 +178,7 @@ void operate(int sd) {
         // free(input);
         if (strcmp(op, "get") == 0) {
             param = strtok(NULL, " ");
-            get(sd, param);
+            //get(sd, param);
         }
         else if (strcmp(op, "quit") == 0) {
             quit(sd);
