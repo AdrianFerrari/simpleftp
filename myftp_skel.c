@@ -93,8 +93,7 @@ void authenticate(int sd) {
     free(input);
 
     // wait to receive password requirement and check for errors
-    code = 331;
-    if (!recv_msg(sd, code, desc)) {
+    if (!recv_msg(sd, 331, desc)) {
         perror("password requirement error");
         exit(1);
     }
@@ -110,8 +109,7 @@ void authenticate(int sd) {
     free(input);
 
     // wait for answer and process it and check for errors
-    code = 230;
-    if(!recv_msg(sd, code, desc)) {
+    if(!recv_msg(sd, 230, desc)) {
         perror("wrong password");
         exit(1);
     }
