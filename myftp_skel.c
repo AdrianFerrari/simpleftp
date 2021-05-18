@@ -203,7 +203,7 @@ int main (int argc, char *argv[]) {
 
     // arguments checking
     if (argc != 3) {
-        printf("%s <SERVER_IP> <SERVER_PORT>", argv[0]);
+        printf("2 arguments needed to execute/n");
         exit(1);
     }
     // create socket and check for errors

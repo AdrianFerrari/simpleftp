@@ -39,14 +39,14 @@ bool recv_cmd(int sd, char *operation, char *param) {
     int recv_s;
 
     // receive the command in the buffer and check for errors
-	if(recv_s = read(sd, buffer, BUFSIZE) == -1){
-		warn("error reading buffer");
-		return false;
-	}
-	if(recv_s == 0) {
-		warn("empty buffer");
-		return false;
-	}
+    if((recv_s = read(sd, buffer, BUFSIZE)) < 0){
+        warn("error reading buffer");
+        return false;
+    }
+    if(recv_s == 0) {
+        warn("empty buffer");
+        return false;
+    }
 	
 
 
@@ -89,9 +89,9 @@ bool send_ans(int sd, char *message, ...){
     vsprintf(buffer, message, args);
     va_end(args);
     // send answer preformated and check errors
-	if(!write(sd, buffer, strlen(buffer)){
-		warn("Error");
-		return false;
+	if(!write(sd, buffer, strlen(buffer))){
+            warn("Error");
+            return false;
 	}
 	return true;
 
@@ -130,14 +130,17 @@ bool send_ans(int sd, char *message, ...){
  * pass: user password
  * return: true if found or false if not
  **/
-bool check_credentials(char *user, char *pass) {
+/*bool check_credentials(char *user, char *pass) {
     FILE *file;
     char *path = "./ftpusers", *line = NULL, cred[100];
     size_t len = 0;
     bool found = false;
 
     // make the credential string
-
+    strcpy(cred, user);
+    strcat(cred, ":");
+    strcat(cred, pass);
+    strcat(cred, "\n");
     // check if ftpusers file it's present
 
     // search for credential string
@@ -145,14 +148,14 @@ bool check_credentials(char *user, char *pass) {
     // close file and release any pointes if necessary
 
     // return search status
-}
+}*/
 
 /**
  * function: login process management
  * sd: socket descriptor
  * return: true if login is succesfully, false if not
  **/
-bool authenticate(int sd) {
+/*bool authenticate(int sd) {
     char user[PARSIZE], pass[PARSIZE];
 
     // wait to receive USER action
@@ -166,7 +169,7 @@ bool authenticate(int sd) {
 		return false;
 	}
     // wait to receive PASS action
-    if(!send_ans(sd, "PASS", pass)){
+    if(!recv cmd(sd, "PASS", pass)){
 		warnx("Failed to receive password");
 		return false;
 	}
@@ -182,7 +185,7 @@ bool authenticate(int sd) {
 			warnx("failed to send login confirm");
 		return false;
 	}
-}
+}*/
 
 /**
  *  function: execute all commands (RETR|QUIT)
@@ -195,21 +198,21 @@ void operate(int sd) {
     while (true) {
         op[0] = param[0] = '\0';
         // check for commands send by the client if not inform and exit
-		if(!recv_cmd(sd, op, param)){
-			warn("abnormal flow");
-			continue;
-		}
+	if(!recv_cmd(sd, op, param)){
+	    warn("abnormal flow");
+            continue;
+        }
 
-        if (strcmp(op, "RETR") == -1) {
+        if (strcmp(op, "RETR") == 0) {
             //retr(sd, param);
-        } else if (strcmp(op, "QUIT") == -1) {
+        } else if (strcmp(op, "QUIT") == 0) {
             // send goodbye and close connection
-			send_ans(sd, MSG_221, NULL);
-			close(sd);
-			break;
+            send_ans(sd, MSG_221, NULL);
+            close(sd);
+            break;
         } else {
             // invalid command
-			warn("command not supported");
+            warn("command not supported");
             // furute use
         }
     }
@@ -222,48 +225,52 @@ void operate(int sd) {
 int main (int argc, char *argv[]) {
 
     // arguments checking
-
+    if (argc != 2) {
+        printf("1 argument needed to execute/n");
+        exit(1);
+    }
+    
     // reserve sockets and variables space
-int msd, ssd; //master sd slave sd
-struct socketaddr_in m_addr, s_addr;
-socketlen_t s_
+    int master_sd, slave_sd;
+    struct sockaddr_in master_addr, slave_addr;
+    socklen_t slave_addr_len;
+	
     // create server socket and check errors
-	msd = socket(AF_INET, SOCK_STREAM, 0);
-	if (msd < 0) {
-      perror("Can't create server socket");
-      exit(1);
-   }
+    if((master_sd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+        perror("Can't create server socket");
+        exit(1);
+    }
     // bind master socket and check errors
-   m_addr.sin_family = AF_INET;
-   m_addr.sin_addr.s_addr = INADDR_ANY;
-   m_addr.sin_port = htons(atoi(argv[1]));
+    master_addr.sin_family = AF_INET;
+    master_addr.sin_addr.s_addr = INADDR_ANY;
+    master_addr.sin_port = htons(atoi(argv[1]));
    
-   if(bind(msd, (struct sockaddr *)&m_addr, sizeof(m_addr)) < 0) {
-      perror("Can't bind socket");
-      exit(2);
-   }
+    if(bind(master_sd, (struct sockaddr *)&master_addr, sizeof(master_addr)) < 0) {
+        perror("Can't bind socket");
+        exit(2);
+    }
     // make it listen
-	if(listen(msd, 10) < 0) {
-      perror("Listen error");
-      exit(3);
-   }
+    if(listen(master_sd, 10) < 0) {
+        perror("Listen error");
+        exit(3);
+    }
     // main loop
     while (true) {
         // accept connectiones sequentially and check errors
-		s_addr_len = sizeof(s_addr);
-		ssd = accept(msd, (struct sockaddr *)&s_addr, &s_addr_len);
-		if(ssd < 0) {
-			errx(4, "Accept error");
-		}
-		#if DEBUG
-		printf("Cliente se conecto\n");
-		#endif //DEBUG
+	slave_addr_len = sizeof(slave_addr);
+	slave_sd = accept(master_sd, (struct sockaddr *)&slave_addr, &slave_addr_len);
+	if(slave_sd < 0) {
+	    errx(4, "Accept error");
+	}
+	#if DEBUG
+	printf("Cliente se conecto\n");
+	#endif //DEBUG
         // send hello
-		send_ans(ssd, MSG_230);
+        send_ans(slave_sd, MSG_230);
         // operate only if authenticate is true
     }
 
     // close server socket
-
+    close(master_sd);
     return 0;
 }
