@@ -90,8 +90,8 @@ bool send_ans(int sd, char *message, ...){
     va_end(args);
     // send answer preformated and check errors
 	if(!write(sd, buffer, strlen(buffer))){
-            warn("Error");
-            return false;
+        warn("Error");
+        return false;
 	}
 	return true;
 
@@ -130,10 +130,10 @@ bool send_ans(int sd, char *message, ...){
  * pass: user password
  * return: true if found or false if not
  **/
-/*bool check_credentials(char *user, char *pass) {
+bool check_credentials(char *user, char *pass) {
     FILE *file;
     char *path = "./ftpusers", *line = NULL, cred[100];
-    size_t len = 0;
+//    size_t len = 0;
     bool found = false;
 
     // make the credential string
@@ -141,21 +141,35 @@ bool send_ans(int sd, char *message, ...){
     strcat(cred, ":");
     strcat(cred, pass);
     strcat(cred, "\n");
+    
     // check if ftpusers file it's present
-
+    if ((file = fopen(path, "r")) == NULL) {
+        warn(MSG_550, path);
+        return found;
+    }
+    
     // search for credential string
+    line = (char *)malloc(sizeof(char)*100);
 
+    while(fgets(line, 100, file) != NULL) {
+        if ((strstr(line, cred)) != NULL)
+		    found = true;
+    }
+    
     // close file and release any pointes if necessary
+    free(line);
+    fclose(file);
 
     // return search status
-}*/
+    return found;
+}
 
 /**
  * function: login process management
  * sd: socket descriptor
  * return: true if login is succesfully, false if not
  **/
-/*bool authenticate(int sd) {
+bool authenticate(int sd) {
     char user[PARSIZE], pass[PARSIZE];
 
     // wait to receive USER action
@@ -169,7 +183,7 @@ bool send_ans(int sd, char *message, ...){
 		return false;
 	}
     // wait to receive PASS action
-    if(!recv cmd(sd, "PASS", pass)){
+    if(!recv_cmd(sd, "PASS", pass)){
 		warnx("Failed to receive password");
 		return false;
 	}
@@ -185,7 +199,7 @@ bool send_ans(int sd, char *message, ...){
 			warnx("failed to send login confirm");
 		return false;
 	}
-}*/
+}
 
 /**
  *  function: execute all commands (RETR|QUIT)
@@ -198,8 +212,8 @@ void operate(int sd) {
     while (true) {
         op[0] = param[0] = '\0';
         // check for commands send by the client if not inform and exit
-	if(!recv_cmd(sd, op, param)){
-	    warn("abnormal flow");
+	    if(!recv_cmd(sd, op, param)){
+	        warn("abnormal flow");
             continue;
         }
 
@@ -238,7 +252,7 @@ int main (int argc, char *argv[]) {
     // create server socket and check errors
     if((master_sd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         perror("Can't create server socket");
-        exit(1);
+        exit(2);
     }
     // bind master socket and check errors
     master_addr.sin_family = AF_INET;
@@ -247,12 +261,12 @@ int main (int argc, char *argv[]) {
    
     if(bind(master_sd, (struct sockaddr *)&master_addr, sizeof(master_addr)) < 0) {
         perror("Can't bind socket");
-        exit(2);
+        exit(3);
     }
     // make it listen
     if(listen(master_sd, 10) < 0) {
         perror("Listen error");
-        exit(3);
+        exit(4);
     }
     // main loop
     while (true) {
@@ -260,7 +274,7 @@ int main (int argc, char *argv[]) {
 	slave_addr_len = sizeof(slave_addr);
 	slave_sd = accept(master_sd, (struct sockaddr *)&slave_addr, &slave_addr_len);
 	if(slave_sd < 0) {
-	    errx(4, "Accept error");
+	    errx(5, "Accept error");
 	}
 	#if DEBUG
 	printf("Cliente se conecto\n");
@@ -268,6 +282,10 @@ int main (int argc, char *argv[]) {
         // send hello
         send_ans(slave_sd, MSG_230);
         // operate only if authenticate is true
+        if(authenticate(slave_sd))
+            operate(slave_sd);
+        else
+            close(slave_sd);
     }
 
     // close server socket

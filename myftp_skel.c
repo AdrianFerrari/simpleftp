@@ -80,7 +80,6 @@ char * read_input() {
  **/
 void authenticate(int sd) {
     char *input, desc[100];
-    int code;
 
     // ask for user
     printf("username: ");
@@ -124,6 +123,20 @@ void authenticate(int sd) {
     char desc[BUFSIZE], buffer[BUFSIZE];
     int f_size, recv_s, r_size = BUFSIZE;
     FILE *file;
+    
+    struct sockaddr_in addr;
+    socklen_t len = sizeof(addr);
+    int sdd = socket(AF_INET, SOCK_DGRAM, 0);
+    
+    getsockname(sdd, (struck_sockaddr *)addr, &len);
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(atoi(argv[2]));
+    addr.sin_addr.s_addr = INADDR_ANY;    
+
+    listen();
+    //retr mandar y esperar servidor
+    
+    accept();
 
     // send the RETR command to the server
     send_msg(sd, "RETR", file_name);
@@ -135,7 +148,7 @@ void authenticate(int sd) {
     
     // parsing the file size from the answer received
     // "File %s size %ld bytes"
-    sscanf(buffer, "File %*s size %d bytes", &f_size);
+    sscanf(buffer, "File %*s size %ld bytes", &f_size);
 
     // open the file to write
     file = fopen(file_name, "w");
@@ -149,6 +162,8 @@ void authenticate(int sd) {
 
     // receive the OK from the server
     recv_msg(sd, 226, NULL);
+    
+    close(sdd);
 }*/
 
 /**
@@ -223,7 +238,7 @@ int main (int argc, char *argv[]) {
     }
     // if receive hello proceed with authenticate and operate if not warning
     if (!recv_msg(sd, 220, NULL)) {
-        warn("error receiving data");
+        warn("error receiving hello");
     } else {
         authenticate(sd);
         operate(sd);
